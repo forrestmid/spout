@@ -15,7 +15,6 @@ use Box\Spout\Writer\Common\Helper\FileSystemWithRootFolderHelperInterface;
 use Box\Spout\Writer\Common\Manager\Style\StyleManagerInterface;
 use Box\Spout\Writer\Common\Manager\Style\StyleMerger;
 use Box\Spout\Writer\Exception\SheetNotFoundException;
-use Box\Spout\Writer\Exception\WriterException;
 
 /**
  * Class WorkbookManagerAbstract
@@ -116,14 +115,14 @@ abstract class WorkbookManagerAbstract implements WorkbookManagerInterface
     /**
      * Creates a new sheet in the workbook. The current sheet remains unchanged.
      *
-     * @return Worksheet The created sheet
      * @throws IOException
+     * @return Worksheet The created sheet
      */
     private function addNewSheet()
     {
         $worksheets = $this->getWorksheets();
 
-        $newSheetIndex = count($worksheets);
+        $newSheetIndex = \count($worksheets);
         $sheetManager = $this->managerFactory->createSheetManager();
         $sheet = $this->entityFactory->createSheet($newSheetIndex, $this->workbook->getInternalId(), $sheetManager);
 
@@ -171,8 +170,8 @@ abstract class WorkbookManagerAbstract implements WorkbookManagerInterface
      * The writing will resume where it stopped (i.e. data won't be truncated).
      *
      * @param Sheet $sheet The "external" sheet to set as current
-     * @return void
      * @throws SheetNotFoundException If the given sheet does not exist in the workbook
+     * @return void
      */
     public function setCurrentSheet(Sheet $sheet)
     {
@@ -220,9 +219,9 @@ abstract class WorkbookManagerAbstract implements WorkbookManagerInterface
      *
      * @param Row $row The row to be added
      *
-     * @return void
      * @throws IOException If trying to create a new sheet and unable to open the sheet for writing
      * @throws \Box\Spout\Common\Exception\InvalidArgumentException
+     * @return void
      */
     public function addRowToCurrentWorksheet(Row $row)
     {
@@ -260,9 +259,9 @@ abstract class WorkbookManagerAbstract implements WorkbookManagerInterface
      * @param Worksheet $worksheet Worksheet to write the row to
      * @param Row $row The row to be added
      *
-     * @return void
      * @throws IOException
      * @throws \Box\Spout\Common\Exception\InvalidArgumentException
+     * @return void
      */
     private function addRowToWorksheet(Worksheet $worksheet, Row $row)
     {
@@ -272,7 +271,7 @@ abstract class WorkbookManagerAbstract implements WorkbookManagerInterface
         // update max num columns for the worksheet
         $currentMaxNumColumns = $worksheet->getMaxNumColumns();
         $cellsCount = $row->getNumCells();
-        $worksheet->setMaxNumColumns(max($currentMaxNumColumns, $cellsCount));
+        $worksheet->setMaxNumColumns(\max($currentMaxNumColumns, $cellsCount));
     }
 
     /**
@@ -289,7 +288,7 @@ abstract class WorkbookManagerAbstract implements WorkbookManagerInterface
     }
 
     /**
-     * @param float|null $width
+     * @param float $width
      */
     public function setDefaultColumnWidth(float $width)
     {
@@ -297,7 +296,7 @@ abstract class WorkbookManagerAbstract implements WorkbookManagerInterface
     }
 
     /**
-     * @param float|null $height
+     * @param float $height
      */
     public function setDefaultRowHeight(float $height)
     {

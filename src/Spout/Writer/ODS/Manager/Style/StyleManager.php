@@ -3,6 +3,7 @@
 namespace Box\Spout\Writer\ODS\Manager\Style;
 
 use Box\Spout\Common\Entity\Style\BorderPart;
+use Box\Spout\Common\Entity\Style\CellAlignment;
 use Box\Spout\Writer\Common\Entity\Worksheet;
 use Box\Spout\Writer\Common\Manager\ManagesCellSize;
 use Box\Spout\Writer\ODS\Helper\BorderHelper;
@@ -189,10 +190,11 @@ EOD;
         }
 
         // Sort column widths since ODS cares about order
-        usort($this->columnWidths, function($a, $b) {
-            if ($a[0] == $b[0]) {
+        usort($this->columnWidths, function ($a, $b) {
+            if ($a[0] === $b[0]) {
                 return 0;
             }
+
             return ($a[0] < $b[0]) ? -1 : 1;
         });
         $content .= $this->getTableColumnStylesXMLContent();
@@ -215,6 +217,7 @@ EOD;
         $content = '<style:style style:data-style-name="N0" style:family="table-cell" style:name="ce' . $styleIndex . '" style:parent-style-name="Default">';
 
         $content .= $this->getTextPropertiesSectionContent($style);
+        $content .= $this->getParagraphPropertiesSectionContent($style);
         $content .= $this->getTableCellPropertiesSectionContent($style);
 
         $content .= '</style:style>';
@@ -230,26 +233,26 @@ EOD;
      */
     private function getTextPropertiesSectionContent($style)
     {
-        $content = '';
-
-        if ($style->shouldApplyFont()) {
-            $content .= $this->getFontSectionContent($style);
+        if (!$style->shouldApplyFont()) {
+            return '';
         }
 
-        return $content;
+        return '<style:text-properties '
+            . $this->getFontSectionContent($style)
+            . '/>';
     }
 
     /**
-     * Returns the contents of the "<style:text-properties>" section, inside "<style:style>" section
+     * Returns the contents of the fonts definition section, inside "<style:text-properties>" section
      *
      * @param \Box\Spout\Common\Entity\Style\Style $style
+     *
      * @return string
      */
     private function getFontSectionContent($style)
     {
         $defaultStyle = $this->getDefaultStyle();
-
-        $content = '<style:text-properties';
+        $content = '';
 
         $fontColor = $style->getFontColor();
         if ($fontColor !== $defaultStyle->getFontColor()) {
@@ -279,9 +282,61 @@ EOD;
             $content .= ' style:text-line-through-style="solid"';
         }
 
-        $content .= '/>';
-
         return $content;
+    }
+
+    /**
+     * Returns the contents of the "<style:paragraph-properties>" section, inside "<style:style>" section
+     *
+     * @param \Box\Spout\Common\Entity\Style\Style $style
+     *
+     * @return string
+     */
+    private function getParagraphPropertiesSectionContent($style)
+    {
+        if (!$style->shouldApplyCellAlignment()) {
+            return '';
+        }
+
+        return '<style:paragraph-properties '
+            . $this->getCellAlignmentSectionContent($style)
+            . '/>';
+    }
+
+    /**
+     * Returns the contents of the cell alignment definition for the "<style:paragraph-properties>" section
+     *
+     * @param \Box\Spout\Common\Entity\Style\Style $style
+     *
+     * @return string
+     */
+    private function getCellAlignmentSectionContent($style)
+    {
+        return \sprintf(
+            ' fo:text-align="%s" ',
+            $this->transformCellAlignment($style->getCellAlignment())
+        );
+    }
+
+    /**
+     * Even though "left" and "right" alignments are part of the spec, and interpreted
+     * respectively as "start" and "end", using the recommended values increase compatibility
+     * with software that will read the created ODS file.
+     *
+     * @param string $cellAlignment
+     *
+     * @return string
+     */
+    private function transformCellAlignment($cellAlignment)
+    {
+        switch ($cellAlignment) {
+            case CellAlignment::LEFT:
+                return 'start';
+            case CellAlignment::RIGHT:
+                return 'end';
+            default:
+                return $cellAlignment;
+        }
     }
 
     /**
@@ -292,7 +347,7 @@ EOD;
      */
     private function getTableCellPropertiesSectionContent($style)
     {
-        $content = '';
+        $content = '<style:table-cell-properties ';
 
         if ($style->shouldWrapText()) {
             $content .= $this->getWrapTextXMLContent();
@@ -306,6 +361,8 @@ EOD;
             $content .= $this->getBackgroundColorXMLContent($style);
         }
 
+        $content .= '/>';
+
         return $content;
     }
 
@@ -316,7 +373,7 @@ EOD;
      */
     private function getWrapTextXMLContent()
     {
-        return '<style:table-cell-properties fo:wrap-option="wrap" style:vertical-align="automatic"/>';
+        return ' fo:wrap-option="wrap" style:vertical-align="automatic" ';
     }
 
     /**
@@ -327,13 +384,11 @@ EOD;
      */
     private function getBorderXMLContent($style)
     {
-        $borderProperty = '<style:table-cell-properties %s />';
-
-        $borders = array_map(function (BorderPart $borderPart) {
+        $borders = \array_map(function (BorderPart $borderPart) {
             return BorderHelper::serializeBorderPart($borderPart);
         }, $style->getBorder()->getParts());
 
-        return sprintf($borderProperty, implode(' ', $borders));
+        return \sprintf(' %s ', \implode(' ', $borders));
     }
 
     /**
@@ -344,13 +399,10 @@ EOD;
      */
     private function getBackgroundColorXMLContent($style)
     {
-        return sprintf(
-            '<style:table-cell-properties fo:background-color="#%s"/>',
-            $style->getBackgroundColor()
-        );
+        return \sprintf(' fo:background-color="#%s" ', $style->getBackgroundColor());
     }
 
-    public function getTableColumnStylesXMLContent(): string
+    public function getTableColumnStylesXMLContent() : string
     {
         if (empty($this->columnWidths)) {
             return '';
@@ -364,10 +416,11 @@ EOD;
 </style:style>
 EOD;
         }
+
         return $content;
     }
 
-    public function getStyledTableColumnXMLContent(int $maxNumColumns): string
+    public function getStyledTableColumnXMLContent(int $maxNumColumns) : string
     {
         if (empty($this->columnWidths)) {
             return '';
@@ -383,6 +436,7 @@ EOD;
         // Note: This assumes the column widths are contiguous and default width is
         // only applied to columns after the last custom column with a custom width
         $content .= '<table:table-column table:default-cell-style-name="ce1" table:style-name="default-column-style" table:number-columns-repeated="' . ($maxNumColumns - $entry[1]) . '"/>';
+
         return $content;
     }
 }

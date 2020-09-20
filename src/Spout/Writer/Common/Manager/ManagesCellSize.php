@@ -1,8 +1,6 @@
 <?php
 
-
 namespace Box\Spout\Writer\Common\Manager;
-
 
 trait ManagesCellSize
 {
@@ -13,7 +11,7 @@ trait ManagesCellSize
     private $defaultRowHeight;
 
     /** @var array Array of min-max-width arrays */
-    private $columnWidths;
+    private $columnWidths = [];
 
     /**
      * @param float|null $width
@@ -62,5 +60,4 @@ trait ManagesCellSize
     {
         $this->columnWidths[] = [$start, $end, $width];
     }
-
 }
